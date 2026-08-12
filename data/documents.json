@@ -1,0 +1,22 @@
+[
+  {
+    "id": "doc1",
+    "content": "A Kubernetes Pod is the smallest deployable unit in Kubernetes."
+  },
+  {
+    "id": "doc2",
+    "content": "A Kubernetes Service provides a stable network endpoint for Pods."
+  },
+  {
+    "id": "doc3",
+    "content": "A Kubernetes Deployment manages replicated Pods and supports rolling updates."
+  },
+  {
+    "id": "doc4",
+    "content": "Google Cloud SQL provides a fully managed relational database service."
+  },
+  {
+    "id": "doc5",
+    "content": "PostgreSQL is an open-source relational database management system."
+  }
+]
