@@ -1,86 +1,150 @@
 import json
+import logging
 from pathlib import Path
+from typing import Any, Dict, List
 
-from app.embeddings import generate_embedding
+from google import genai
+from google.genai import types
+
+from app.config import (
+    EMBEDDING_DIMENSIONS,
+    EMBEDDING_MODEL,
+    GCP_PROJECT_ID,
+    GOOGLE_CLOUD_LOCATION,
+)
+
+# File Paths
+INPUT_FILE = Path("data/documents.json")
+OUTPUT_FILE = Path("data/embeddings.json")
 
 
-ROOT = Path(__file__).resolve().parents[1]
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s"
+)
+logger = logging.getLogger(__name__)
 
-DOCUMENTS_FILE = ROOT / "data" / "documents.json"
-OUTPUT_FILE = ROOT / "data" / "embeddings.json"
+client = genai.Client(
+    vertexai=True,
+    project=GCP_PROJECT_ID,
+    location=GOOGLE_CLOUD_LOCATION,
+)
+
+
+def generate_embedding(text: str) -> List[float]:
+    """Generates a text embedding vector using the Google GenAI SDK.
+
+    Args:
+        text: Input string document content to embed.
+
+    Returns:
+        List[float]: Vector values as floating-point numbers.
+    """
+    response = client.models.embed_content(
+        model=EMBEDDING_MODEL,
+        contents=text,
+        config=types.EmbedContentConfig(
+            output_dimensionality=EMBEDDING_DIMENSIONS,
+            task_type="RETRIEVAL_DOCUMENT",
+        ),
+    )
+
+    vector = response.embeddings[0].values
+
+    if len(vector) != EMBEDDING_DIMENSIONS:
+        raise RuntimeError(
+            f"Expected {EMBEDDING_DIMENSIONS} dimensions, got {len(vector)}."
+        )
+
+    return list(vector)
+
+
+def build_vector_search_datapoint(doc: Dict[str, Any], embedding: List[float]) -> Dict[str, Any]:
+    """Constructs a Vertex AI Vector Search compliant JSON datapoint schema."""
+    document_id = doc["document_id"]
+
+    return {
+        "id": f"{document_id}",
+        "embedding": embedding,
+
+        "restricts": [
+            {"namespace": "category", "allow": [doc["category"]]},
+            {"namespace": "subcategory", "allow": [doc["subcategory"]]},
+            {"namespace": "language", "allow": [doc["language"]]},
+            {"namespace": "source", "allow": [doc["source"]]},
+            {"namespace": "source_type", "allow": [doc["source_type"]]},
+        ],
+
+        
+        "numeric_restricts": [
+            {"namespace": "version", "value_int": doc["version"]},
+            {"namespace": "page", "value_int": doc["page"]},
+        ],
+
+        "embedding_metadata": {
+            "document_id": doc["document_id"],
+            "title": doc["title"],
+            "content": doc["content"],
+            "category": doc["category"],
+            "subcategory": doc["subcategory"],
+            "language": doc["language"],
+            "source": doc["source"],
+            "source_type": doc["source_type"],
+            "version": doc["version"],
+            "page": doc["page"],
+        },
+    }
 
 
 def main() -> None:
+    """Main execution function."""
     print("=" * 60)
-    print("CREATING EMBEDDINGS")
+    print("GENERATING EMBEDDINGS (VERTEX AI)")
+    print("=" * 60)
+    print(f"Project ID : {GCP_PROJECT_ID}")
+    print(f"Location   : {GOOGLE_CLOUD_LOCATION}")
+    print(f"Model      : {EMBEDDING_MODEL}")
+    print(f"Dimensions : {EMBEDDING_DIMENSIONS}")
+    print(f"Input      : {INPUT_FILE}")
+    print(f"Output     : {OUTPUT_FILE}")
     print("=" * 60)
 
-    if not DOCUMENTS_FILE.exists():
-        raise FileNotFoundError(
-            f"Missing documents file: {DOCUMENTS_FILE}"
-        )
+    if not INPUT_FILE.exists():
+        logger.error("Input file not found: %s", INPUT_FILE)
+        return
 
-    # Load normal JSON array
-    with DOCUMENTS_FILE.open("r", encoding="utf-8") as file:
-        documents = json.load(file)
+    OUTPUT_FILE.parent.mkdir(parents=True, exist_ok=True)
 
-    if not isinstance(documents, list):
-        raise ValueError(
-            "documents.json must contain a JSON array."
-        )
+    documents: List[Dict[str, Any]] = json.loads(
+        INPUT_FILE.read_text(encoding="utf-8")
+    )
 
-    embeddings = []
+    print(f"Documents found: {len(documents)}\n")
 
-    for document in documents:
+    with OUTPUT_FILE.open("w", encoding="utf-8") as f:
+        for index, doc in enumerate(documents, start=1):
+            document_id = doc["document_id"]
 
-        document_id = document["id"]
-        content = document["content"]
-
-        print(
-            f"Generating embedding for {document_id}..."
-        )
-
-        vector = generate_embedding(content)
-
-        if len(vector) != 768:
-            raise ValueError(
-                f"{document_id}: expected 768 dimensions, "
-                f"got {len(vector)}"
+            print(
+                f"[{index}/{len(documents)}] "
+                f"Embedding {document_id}: "
+                f"\"{doc['title']}\""
             )
 
-        embeddings.append(
-            {
-                "id": document_id,
-                "embedding": vector,
-            }
-        )
+        
+            embedding = generate_embedding(doc["content"])
 
-        print(
-            f"{document_id} -> {len(vector)} dimensions"
-        )
+            
+            datapoint = build_vector_search_datapoint(doc, embedding)
 
-    # IMPORTANT:
-    # Vertex AI Vector Search expects one JSON object
-    # per line. The file extension can still be .json.
-    with OUTPUT_FILE.open("w", encoding="utf-8") as file:
+            
+            f.write(json.dumps(datapoint) + "\n")
 
-        for item in embeddings:
-            json.dump(
-                item,
-                file,
-                ensure_ascii=False,
-                separators=(",", ":"),
-            )
-
-            file.write("\n")
-
-    print()
+    print("\n" + "=" * 60)
+    print("EMBEDDINGS CREATED SUCCESSFULLY")
     print("=" * 60)
-    print("EMBEDDING GENERATION COMPLETE")
-    print("=" * 60)
-    print(f"Created: {OUTPUT_FILE}")
-    print(f"Documents: {len(embeddings)}")
-    print("Format: JSON objects, one per line")
+    print(f"Output file: {OUTPUT_FILE}")
+    print(f"Total datapoints: {len(documents)}")
     print("=" * 60)
 
 

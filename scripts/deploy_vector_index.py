@@ -4,14 +4,12 @@ from app.config import (
     GCP_PROJECT_ID,
     GOOGLE_CLOUD_LOCATION,
     VECTOR_SEARCH_INDEX_ID,
+    VECTOR_SEARCH_ENDPOINT_ID,
 )
 
 
-# Existing endpoint from your Google Cloud project
-VECTOR_SEARCH_ENDPOINT_ID = "2253200591499034624"
 
-# New deployment ID
-NEW_DEPLOYED_INDEX_ID = "adk_vector_poc_v2"
+NEW_DEPLOYED_INDEX_ID = "adk_vector_poc"
 
 
 def main() -> None:
@@ -48,7 +46,7 @@ def main() -> None:
     endpoint.deploy_index(
         index=index,
         deployed_index_id=NEW_DEPLOYED_INDEX_ID,
-        display_name="adk-vector-poc-v2",
+        display_name="adk_vector_poc",
         min_replica_count=1,
         max_replica_count=1,
     )

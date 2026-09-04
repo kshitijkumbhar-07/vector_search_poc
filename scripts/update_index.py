@@ -2,7 +2,7 @@ from google.cloud import aiplatform
 
 from app.config import (
     GCP_PROJECT_ID,
-GOOGLE_CLOUD_LOCATION,
+    GOOGLE_CLOUD_LOCATION,
     VECTOR_SEARCH_INDEX_ID,
     VECTOR_SEARCH_BUCKET,
     VECTOR_SEARCH_GCS_PATH,
@@ -32,14 +32,20 @@ def main() -> None:
     print(f"Index: {VECTOR_SEARCH_INDEX_ID}")
     print(f"GCS:   {gcs_uri}")
 
-    index.update_embeddings(
+    operation = index.update_embeddings(
+    contents_delta_uri=gcs_uri,
+    is_complete_overwrite=True,
+)
+
+    print()
+    operation = index.update_embeddings(
         contents_delta_uri=gcs_uri,
         is_complete_overwrite=True,
     )
 
     print()
-    print("Index update submitted.")
-    print("Wait for index synchronization before searching.")
+    print("Successfully updated vector search index:")
+    print(operation.resource_name)
 
 
 if __name__ == "__main__":

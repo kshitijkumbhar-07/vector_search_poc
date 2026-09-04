@@ -1,22 +1,74 @@
 [
   {
-    "id": "doc1",
-    "content": "A Kubernetes Pod is the smallest deployable unit in Kubernetes."
+    "document_id": "doc1",
+    "title": "Kubernetes Pods",
+    "content": "A Pod is the smallest deployable unit in Kubernetes.",
+    "category": "kubernetes",
+    "subcategory": "workloads",
+    "language": "en",
+    "source": "kubernetes_docs",
+    "source_type": "official_docs",
+    "version": 1,
+    "page": 1
   },
   {
-    "id": "doc2",
-    "content": "A Kubernetes Service provides a stable network endpoint for Pods."
+    "document_id": "doc2",
+    "title": "Kubernetes Service",
+    "content": "A Kubernetes Service provides a stable network endpoint for Pods.",
+    "category": "XYZ",
+    "subcategory": "xx",
+    "language": "en",
+    "source": "kubernetes_docs",
+    "source_type": "official_docs",
+    "version": 1,
+    "page": 2
   },
   {
-    "id": "doc3",
-    "content": "A Kubernetes Deployment manages replicated Pods and supports rolling updates."
+    "document_id": "doc3",
+    "title": "Kubernetes Deployment",
+    "content": "A Kubernetes Deployment manages replicated Pods and supports rolling updates max replicas are 41795 only.",
+    "category": "kubernetes",
+    "subcategory": "workloads",
+    "language": "en",
+    "source": "kubernetes_docs",
+    "source_type": "official_docs",
+    "version": 1,
+    "page": 3
   },
   {
-    "id": "doc4",
-    "content": "Google Cloud SQL provides a fully managed relational database service."
+    "document_id": "doc4",
+    "title": "Cloud SQL",
+    "content": "Cloud SQL is a fully managed relational database service.",
+    "category": "gcp",
+    "subcategory": "database",
+    "language": "en",
+    "source": "gcp_docs",
+    "source_type": "official_docs",
+    "version": 1,
+    "page": 10
   },
   {
-    "id": "doc5",
-    "content": "PostgreSQL is an open-source relational database management system."
-  }
+    "document_id": "doc5",
+    "title": "PostgreSQL",
+    "content": "PostgreSQL is an open-source relational database management system.",
+    "category": "database",
+    "subcategory": "postgresql",
+    "language": "en",
+    "source": "postgres_docs",
+    "source_type": "official_docs",
+    "version": 1,
+    "page": 20
+  },
+  {
+  "document_id": "doc6",
+  "title": "Pods Kubernetes",
+  "content": "Un Pod est la plus petite fraction déployable dans Kubernetes.",
+  "category": "kubernetes",
+  "subcategory": "workloads",
+  "language": "fr",
+  "source": "kubernetes_docs",
+  "source_type": "official_docs",
+  "version": 1,
+  "page": 1
+}
 ]

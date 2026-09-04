@@ -1,5 +1,4 @@
 from google.cloud import aiplatform
-
 from app.config import (
     GCP_PROJECT_ID,
     GOOGLE_CLOUD_LOCATION,
@@ -8,79 +7,74 @@ from app.config import (
     TOP_K,
 )
 
-
-# ---------------------------------------------------------
-# Vertex AI initialization
-# ---------------------------------------------------------
-
-aiplatform.init(
-    project=GCP_PROJECT_ID,
-    location=GOOGLE_CLOUD_LOCATION,
-)
-
-
-# ---------------------------------------------------------
-# Vector Search Endpoint
-# ---------------------------------------------------------
-
-INDEX_ENDPOINT_NAME = (
-    f"projects/{GCP_PROJECT_ID}/locations/"
-    f"{GOOGLE_CLOUD_LOCATION}/indexEndpoints/"
-    f"{VECTOR_SEARCH_INDEX_ENDPOINT_ID}"
-)
-
-
-index_endpoint = aiplatform.MatchingEngineIndexEndpoint(
-    index_endpoint_name=INDEX_ENDPOINT_NAME
-)
-
-
-# ---------------------------------------------------------
-# Vector Search
-# ---------------------------------------------------------
+def create_endpoint() -> aiplatform.MatchingEngineIndexEndpoint:
+    return aiplatform.MatchingEngineIndexEndpoint(
+        index_endpoint_name=(
+            f"projects/{GCP_PROJECT_ID}"
+            f"/locations/{GOOGLE_CLOUD_LOCATION}"
+            f"/indexEndpoints/"
+            f"{VECTOR_SEARCH_INDEX_ENDPOINT_ID}"
+        )
+    )
 
 def search_vector(
     query_embedding: list[float],
     top_k: int | None = None,
+    category: str | None = None,
+    subcategory: str | None = None,
+    language: str | None = None,
 ):
-    """
-    Search Vertex AI Vector Search using a query embedding.
+    endpoint = create_endpoint()
+    filters = []
 
-    Parameters:
-        query_embedding:
-            768-dimensional embedding vector.
-
-        top_k:
-            Number of nearest documents to return.
-            Uses TOP_K from configuration if not provided.
-
-    Returns:
-        List of Vector Search nearest-neighbor results.
-    """
-
-    # Validate embedding dimension
-    if len(query_embedding) != 768:
-        raise ValueError(
-            f"Expected 768-dimensional vector, "
-            f"got {len(query_embedding)}"
+    if category:
+        filters.append(
+            aiplatform.matching_engine.matching_engine_index_endpoint.Namespace(
+                name="category",
+                allow_tokens=[category],
+            )
         )
 
-    # Number of results
-    num_neighbors = top_k or TOP_K
+    if subcategory:
+        filters.append(
+            aiplatform.matching_engine.matching_engine_index_endpoint.Namespace(
+                name="subcategory",
+                allow_tokens=[subcategory],
+            )
+        )
 
-    print(
-        f"Searching Vector Search "
-        f"(top_k={num_neighbors})..."
-    )
+    if language:
+        filters.append(
+            aiplatform.matching_engine.matching_engine_index_endpoint.Namespace(
+                name="language",
+                allow_tokens=[language],
+            )
+        )
 
-    # Query deployed Vector Search index
-    neighbors = index_endpoint.find_neighbors(
+    print("\n--- [Vertex AI Vector Search Query] ---")
+    if filters:
+        print("Applied Metadata Filters:")
+        for f in filters:
+            print(f"  • {f.name}: {f.allow_tokens}")
+    else:
+        print("Applied Metadata Filters: None (Unfiltered Search)")
+
+    response = endpoint.find_neighbors(
         deployed_index_id=DEPLOYED_INDEX_ID,
         queries=[query_embedding],
-        num_neighbors=num_neighbors,
+        num_neighbors=top_k or TOP_K,
+        filter=filters or None,
     )
+    
 
-    if not neighbors:
-        return []
+    results = response[0] if response else []
+    print(f"Matches Found: {len(results)}\n----------------------------------------\n")
+    
 
-    return neighbors[0]
+    # Print vector distance for every match
+    for idx, neighbor in enumerate(results, start=1):
+        print(f"  [{idx}] Match ID: {neighbor.id:<15} | Distance: {neighbor.distance:.4f}")
+
+    print("----------------------------------------\n")
+    
+    return results
